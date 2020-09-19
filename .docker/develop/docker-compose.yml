@@ -1,0 +1,45 @@
+version: "3"
+
+services:
+    php-docker-example-application:
+        container_name: "php-docker-example-application"
+        build: 
+            context: ../../
+            dockerfile: ./.docker/develop/php/Dockerfile
+        restart: "always"
+        networks: 
+            - php-docker-example-network
+        volumes: 
+            - ../../src/:/var/www/php-docker-example/:cached
+            - ./php/www.conf:/usr/local/etc/php-fpm.d/www.conf:cached
+            - ./php/php.ini:/usr/local/etc/php-fpm.d/php.ini:cached
+            - ./php/php-fpm.conf:/usr/local/etc/php-fpm.d/php-fpm.conf:cached
+    php-docker-example-nginx:
+        container_name: "php-docker-example-nginx"
+        restart: unless-stopped
+        image: nginx:stable
+        ports: 
+            - 8080:8080
+        networks: 
+            - php-docker-example-network
+        volumes: 
+            - ./nginx/nginx.conf:/etc/nginx/nginx.conf:cached
+            - ./../../src/static/:/var/www/php-docker-example/static/:cached
+        depends_on: 
+            - php-docker-example-application
+    php-docker-example-memcached:
+        image: memcached:latest
+        container_name: "php-docker-example-memcached"
+        command:
+            - '-m 256'
+        networks:
+            - php-docker-example-network
+        depends_on: 
+            - php-docker-example-application
+networks:
+    php-docker-example-network:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 192.168.120.0/28
